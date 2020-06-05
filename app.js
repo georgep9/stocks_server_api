@@ -4,7 +4,13 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
-const db = require('./database/db');
+const knexOptions = require('./knexfile.js');
+const knex = require('knex')(knexOptions);
+
+
+
+
+
 var stocksRouter = require('./routes/stocks');
 var userRouter = require('./routes/user');
 
@@ -20,7 +26,21 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(db);
+
+
+
+app.use((req, res, next) => {
+  req.db = knex;
+  next();
+});
+
+app.get('/knex', function(req,res,next) {
+	req.db.raw("SELECT VERSION()").then(
+		(version) => console.log((version[0][0]))
+	).catch((err) => { console.log(err); throw err });
+	res.send("Version Logged successfully");
+});
+
 app.use('/stocks', stocksRouter);
 app.use('/user', userRouter);
 
