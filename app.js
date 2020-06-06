@@ -7,7 +7,9 @@ var logger = require('morgan');
 const knexOptions = require('./knexfile.js');
 const knex = require('knex')(knexOptions);
 
-
+const swaggerUI = require('swagger-ui-express');
+const yaml = require('yamljs');
+const swaggerDocument = yaml.load('./swagger.yaml');
 
 
 
@@ -38,6 +40,8 @@ logger.token("res", (req, res) => {
 	return JSON.stringify(headers)
 });
 
+app.use("/", swaggerUI.serve);
+app.get("/", swaggerUI.setup(swaggerDocument));
 app.use('/stocks', stocksRouter);
 app.use('/user', userRouter);
 

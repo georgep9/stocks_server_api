@@ -2,9 +2,9 @@ var express = require('express');
 var router = express.Router();
 
 router.get('/symbols', function(req, res, next) {
-	req.db.from('stocks').select('*')
+	req.db.from('stocks').distinct(['name', 'symbol', 'industry'])
 		.then ((rows) => {
-			res.json({"Error": false, "Message": "Success", "Stocks": rows})
+			res.json(rows)
 		})
 		.catch((err) => {
 			console.log(err);
