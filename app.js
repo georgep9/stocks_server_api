@@ -20,25 +20,22 @@ var app = express();
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
-app.use(logger('dev'));
+app.use(logger('common'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
-
-
-
 
 app.use((req, res, next) => {
   req.db = knex;
   next();
 });
 
-app.get('/knex', function(req,res,next) {
-	req.db.raw("SELECT VERSION()").then(
-		(version) => console.log((version[0][0]))
-	).catch((err) => { console.log(err); throw err });
-	res.send("Version Logged successfully");
+logger.token("req", (req, res) => JSON.stringify(req.headers));
+logger.token("res", (req, res) => {
+	const headers = {}
+	res.getHeaderNames().map((h) => (headers[h] = res.getHeader(h)))
+	return JSON.stringify(headers)
 });
 
 app.use('/stocks', stocksRouter);
