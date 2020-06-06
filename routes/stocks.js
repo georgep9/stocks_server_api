@@ -79,11 +79,32 @@ router.get('/:symbol', function(req, res, next) {
 /**
  * /stocks/authed/{symbol} API endpoint
  */
-router.get('/authed', function(req, res, next) {
+router.get('/authed/:symbol', function(req, res, next) {
 
   let query = req.db('stocks'); // get db query instance
 
-  res.render('index', { title: 'Authed' });
+  if (req.query.from && req.query.to){
+
+    const fromDate = new Date(req.query.from);
+    const toDate = new Date(req.query.to);
+
+    if (isNaN(fromDate)){
+      res.status(400);
+      res.json({errro: true, message: "From date cannot be parsed by Date.parse()"});
+      return;
+    }
+
+    if (isNaN(toDate)){
+      res.status(400);
+      res.json({errro: true, message: "To date cannot be parsed by Date.parse()"});
+      return;
+    }
+    
+  }
+  else {
+    res.status(400);
+    res.json({error: true, message: "Parameters allowed are 'from' and 'to', example: /stocks/authed/AAL?from=2020-03-15"});
+  }
 });
 
 
