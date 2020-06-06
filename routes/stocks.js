@@ -8,20 +8,19 @@ router.get('/symbols', function(req, res, next) {
 
     let query = req.db('stocks'); // get db query instance
 
-    // check if industry queried
-    if (req.query.industry){
-      // if valid format, filter db query for industry provided
-      if (/^[a-zA-Z]+$/.test(req.query.industry)){
-        query.where("industry", "like", `%${req.query.industry}%`);
-      }
-      else { // else, respond with error
-        res.status(400);
-        res.json({error: true, message: "Invalid query parameter: only 'industry' is permitted"});
-        return;
-      }
+    const reqQuery = Object.keys(req.query); // array of query parameters
+
+    // check for industry parameter and only industry parameter
+    if (reqQuery.length === 1 && reqQuery.includes("industry")){
+      query.where("industry", "like", `%${req.query.industry}%`) // filter for industry
+    }
+    else if (reqQuery.length){ // invalid parameter
+      res.status(400);
+      res.json({error: true, message: "Invalid query parameter: only 'industry' is permitted"});
+      return;
     }
 
-    // distinct select name, symbol, industry columns from db
+    // distinct select name, symbol, industry columns from stocks
     query.distinct("name", "symbol", "industry")
       .then((rows) => {
         // if there are rows, repond with json of rows
@@ -48,30 +47,34 @@ router.get('/:symbol', function(req, res, next) {
 
   let query = req.db('stocks'); // get db query instance
 
-  // check if symbol is correct format
-  if (/^[A-Z]{1,5}$/.test(req.params.symbol)){
-
-      // filter query for symbol provided
-      query.where("symbol", "=", req.params.symbol);
-
-      query.distinct("*")
-        .then((rows) => {
-          // if there are rows, respond with stock object json
-          if (rows.length){
-            res.status(200);
-            res.json(rows[0]); // send only latest time entry
-          }
-          else { // no rows return, respond with error
-            res.status(404);
-            res.json({ error: true, message: "No entry for symbol in stocks database"})
-          }
-        })
-
+  // respond with error if date parameters are provided
+  if (req.query.from || req.query.to){
+    res.status(400);
+    res.json({error: true, message: "Date parameters only available on authenticated route /stocks/authed"});
+    return;
   }
-  else { // incorrect format, respond with error
+
+  // respond with error if incorrect symbol format
+  if (/^[A-Z]{1,5}$/.test(req.params.symbol) == false){
     res.status(400);
     res.json({error: true, mesage: "Stock symbol incorrect format - must be 1-5 capital letters"});
+    return;
   }
+
+  // distinct select all columns from stocks
+  query.distinct("*")
+    .where("symbol", "=", req.params.symbol) // filter for symbol
+    .then((rows) => {
+      // if there are rows, respond with stock object json
+      if (rows.length){
+        res.status(200);
+        res.json(rows[0]); // send only latest time entry
+      }
+      else { // no rows return, respond with error
+        res.status(404);
+        res.json({ error: true, message: "No entry for symbol in stocks database"})
+      }
+    })
 
 });
 
@@ -82,7 +85,6 @@ router.get('/:symbol', function(req, res, next) {
 router.get('/authed/:symbol', function(req, res, next) {
 
   let query = req.db('stocks'); // get db query instance
-
   let fromDate = null;
   let toDate = null;
 
