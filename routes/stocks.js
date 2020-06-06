@@ -83,28 +83,43 @@ router.get('/authed/:symbol', function(req, res, next) {
 
   let query = req.db('stocks'); // get db query instance
 
-  if (req.query.from && req.query.to){
+  let fromDate = null;
+  let toDate = null;
 
-    const fromDate = new Date(req.query.from);
-    const toDate = new Date(req.query.to);
-
+  if (req.query.from){
+    fromDate = new Date(req.query.from);
     if (isNaN(fromDate)){
       res.status(400);
       res.json({errro: true, message: "From date cannot be parsed by Date.parse()"});
       return;
     }
+  }
 
+  if (req.query.to){
+    toDate = new Date(req.query.to);
     if (isNaN(toDate)){
       res.status(400);
       res.json({errro: true, message: "To date cannot be parsed by Date.parse()"});
       return;
     }
-    
   }
-  else {
-    res.status(400);
-    res.json({error: true, message: "Parameters allowed are 'from' and 'to', example: /stocks/authed/AAL?from=2020-03-15"});
-  }
+
+  query.select('*')
+    .where("symbol", "=", `${req.params.symbol}`)
+    .where("timestamp", ">=", `${req.query.from}`)
+    .where("timestamp", "<", `${req.query.to}`)
+    .then((rows) => {
+      if (rows.length){
+        res.status(200);
+        req.query.from || req.query.to ? res.json(rows) : res.json(rows[0]);
+      }
+      else {
+        res.status(404);
+        res.json({error: true, 
+          message: "No entries available for query symbol for supplied date range"});
+      }
+    })
+
 });
 
 
