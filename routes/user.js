@@ -42,8 +42,6 @@ router.post('/register', function(req, res, next) {
             .catch(error => { // sql error
               res.status(500);
               res.json({message: 'Database error - not inserted'});
-              console.log('Error on request body for REGISTER', JSON.stringify(req.body));
-              console.log(error);
             })
         }
       })
@@ -90,11 +88,9 @@ router.post('/login', function(req, res, next) {
         }
         else { // return successful login
 
-          const secretKey = "secretkey";
           const expires_in = 60 * 60 * 24; // a day
           const exp = Date.now() + expires_in * 1000;
-          const email = req.body.email;
-          const token = jwt.sign({ email, exp }, secretKey)
+          const token = jwt.sign({ email: req.body.email, exp }, "secretkey")
 
           res.status(200);
           res.json({ token_type: "Bearer", token, expires_in })
@@ -104,8 +100,6 @@ router.post('/login', function(req, res, next) {
       .catch(error => { // sql error
         res.status(500);
         res.json({message: 'Database error - not selected'});
-        console.log('Error on request body for LOGIN', JSON.stringify(req.body));
-        console.log(error);
       })
   
   }

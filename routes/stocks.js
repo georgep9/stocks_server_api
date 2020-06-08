@@ -77,41 +77,49 @@ router.get('/:symbol', function(req, res, next) {
         res.json({ error: true, message: "No entry for symbol in stocks database"})
       }
     })
+    .catch((err) => { // sql error
+      console.log(err)
+      res.json({ error: true, message: "Error in MySQL query" })
+    })
 
 });
 
-
+/**
+ * authorizes user token
+ */
 const authorize = (req,res,next) => {
 
+  // authorization header
   const authorization = req.headers.authorization;
   
   let token = null
 
-  // retrieve token
+  // if header exists and correct format, retrieve token
   if (authorization && authorization.split(" ").length === 2){
     token = authorization.split(" ")[1];
   }
-  else {
+  else { // else, respond with error
     res.status(403);
     res.json({error: true, message: "Authorization header not found"});
     return;
   }
 
+  // try to decode token, throws error if token is invalid
   try {
 
-    const secretKey = "secretkey";
+    // object of decoded token
+    const decoded = jwt.verify(token, "secretkey");
 
-    const decoded = jwt.verify(token, secretKey);
-
+    // if expired, respond with error
     if (decoded.exp < Date.now()){
       res.status(403);
       res.json({error: true, message: "Token has expired."})
       return;
     }
 
-    next();
+    next(); // continue into authenticated route
   } 
-  catch (e) {
+  catch (e) { // response with error
     res.status(403);
     res.json({error: true, message: "Token is invalid"});
   }
@@ -125,11 +133,10 @@ const authorize = (req,res,next) => {
 router.get('/authed/:symbol', authorize, function(req, res, next) {
 
   let query = req.db('stocks'); // get db query instance
-  let fromDate = null;
-  let toDate = null;
 
   const reqQuery = Object.keys(req.query); // array of query parameters
 
+  // if parameters format is incorrect, respond with error
   if ((reqQuery.length === 2 && !reqQuery.includes("from") && !reqQuery.includes("to")) ||
     (reqQuery.length === 1 && !reqQuery.includes("from")) ||
     reqQuery.length > 2){
@@ -139,8 +146,9 @@ router.get('/authed/:symbol', authorize, function(req, res, next) {
     return;
   }
 
+  // if from date is not parsable, respond with error
   if (req.query.from){
-    fromDate = new Date(req.query.from);
+    const fromDate = new Date(req.query.from);
     if (isNaN(fromDate)){
       res.status(400);
       res.json({errro: true, message: "From date cannot be parsed by Date.parse()"});
@@ -148,8 +156,9 @@ router.get('/authed/:symbol', authorize, function(req, res, next) {
     }
   }
 
+  // if to date is not parsable, respond with error
   if (req.query.to){
-    toDate = new Date(req.query.to);
+    const toDate = new Date(req.query.to);
     if (isNaN(toDate)){
       res.status(400);
       res.json({errro: true, message: "To date cannot be parsed by Date.parse()"});
@@ -157,20 +166,28 @@ router.get('/authed/:symbol', authorize, function(req, res, next) {
     }
   }
 
+  // select stocks from table within timestamp limits
   query.select('*')
     .where("symbol", "=", `${req.params.symbol}`)
     .where("timestamp", ">=", `${req.query.from}`)
     .where("timestamp", "<=", `${req.query.to}`)
     .then((rows) => {
+      // if there are stocks
       if (rows.length){
         res.status(200);
+        // respond with array of stocks or latest stock depending on if
+        // from and to dates provided
         req.query.from || req.query.to ? res.json(rows) : res.json(rows[0]);
       }
-      else {
+      else { // no stocks in date range
         res.status(404);
         res.json({error: true, 
           message: "No entries available for query symbol for supplied date range"});
       }
+    })
+    .catch((err) => { // sql error
+      console.log(err)
+      res.json({ error: true, message: "Error in MySQL query" })
     })
 
 });

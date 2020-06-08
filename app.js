@@ -15,10 +15,10 @@ const swaggerDocument = yaml.load('./swagger.yaml');
 const helmet = require('helmet');
 const cors = require('cors');
 
-var stocksRouter = require('./routes/stocks');
-var userRouter = require('./routes/user');
+const stocksRouter = require('./routes/stocks');
+const userRouter = require('./routes/user');
 
-var app = express();
+const app = express();
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
