@@ -1,6 +1,8 @@
 var express = require('express');
 var router = express.Router();
 
+const jwt = require('jsonwebtoken');
+
 /**
  * /stocks/symbols API endpoint
  */ 
@@ -79,14 +81,63 @@ router.get('/:symbol', function(req, res, next) {
 });
 
 
+const authorize = (req,res,next) => {
+
+  const authorization = req.headers.authorization;
+  
+  let token = null
+
+  // retrieve token
+  if (authorization && authorization.split(" ").length === 2){
+    token = authorization.split(" ")[1];
+  }
+  else {
+    res.status(403);
+    res.json({error: true, message: "Authorization header not found"});
+    return;
+  }
+
+  try {
+
+    const secretKey = "secretkey";
+
+    const decoded = jwt.verify(token, secretKey);
+
+    if (decoded.exp < Date.now()){
+      res.status(403);
+      res.json({error: true, message: "Token has expired."})
+      return;
+    }
+
+    next();
+  } 
+  catch (e) {
+    res.status(403);
+    res.json({error: true, message: "Token is invalid"});
+  }
+
+}
+
+
 /**
  * /stocks/authed/{symbol} API endpoint
  */
-router.get('/authed/:symbol', function(req, res, next) {
+router.get('/authed/:symbol', authorize, function(req, res, next) {
 
   let query = req.db('stocks'); // get db query instance
   let fromDate = null;
   let toDate = null;
+
+  const reqQuery = Object.keys(req.query); // array of query parameters
+
+  if ((reqQuery.length === 2 && !reqQuery.includes("from") && !reqQuery.includes("to")) ||
+    (reqQuery.length === 1 && !reqQuery.includes("from")) ||
+    reqQuery.length > 2){
+    res.status(400);
+    res.json({error: true, 
+      message: "Parameters allowed are 'from' and 'to', example: /stocks/authed/AAL?from=2020-03-15"});
+    return;
+  }
 
   if (req.query.from){
     fromDate = new Date(req.query.from);

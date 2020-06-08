@@ -1,6 +1,8 @@
 var express = require('express');
-const bcrypt = require('bcrypt');
 var router = express.Router();
+
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 /**
  *  /user/register API endpoint
@@ -87,12 +89,15 @@ router.post('/login', function(req, res, next) {
           return;
         }
         else { // return successful login
+
+          const secretKey = "secretkey";
+          const expires_in = 60 * 60 * 24; // a day
+          const exp = Date.now() + expires_in * 1000;
+          const email = req.body.email;
+          const token = jwt.sign({ email, exp }, secretKey)
+
           res.status(200);
-          res.json({
-            token: "dummy",
-            token_type: "Bearer",
-            expires_in: 86400
-          })
+          res.json({ token_type: "Bearer", token, expires_in })
         }
 
       })
