@@ -109,7 +109,7 @@ router.get('/authed/:symbol', function(req, res, next) {
   query.select('*')
     .where("symbol", "=", `${req.params.symbol}`)
     .where("timestamp", ">=", `${req.query.from}`)
-    .where("timestamp", "<", `${req.query.to}`)
+    .where("timestamp", "<=", `${req.query.to}`)
     .then((rows) => {
       if (rows.length){
         res.status(200);
