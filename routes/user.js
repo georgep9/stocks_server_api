@@ -40,8 +40,45 @@ router.post('/register', function(req, res, next) {
     }
 });
 
-router.get('/login', function(req, res, next) {
-  res.render('index', { title: 'Login' });
+router.post('/login', function(req, res, next) {
+  
+  // return error if request body incomplete
+  if (!req.body.email || !req.body.password){
+    res.status(400);
+    res.json({error: true, message: "Request body incomplete - email and password needed"});
+  } 
+  else {
+    
+    let query = req.db("users");
+
+    query.select()
+      .where("email", "=", req.body.email)
+      .where("hash","=",req.body.password)
+      .then((rows) => {
+        if (rows.length){
+          res.status(200);
+          res.json({
+            token: "dummy",
+            token_type: "Bearer",
+            expires: 86400
+          })
+        }
+        else {
+          res.status(401);
+          res.json({
+            error: true,
+            message: "Incorrect email or password"
+          })
+        }
+      })
+      .catch(error => { // sql error
+        res.status(500);
+        res.json({message: 'Database error - not inserted'});
+        console.log('Error on request body', JSON.stringify(req.body));
+      })
+  
+  }
+
 });
 
 
