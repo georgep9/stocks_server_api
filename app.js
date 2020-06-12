@@ -15,8 +15,6 @@ const swaggerDocument = yaml.load('./swagger.yaml');
 const helmet = require('helmet');
 const cors = require('cors');
 
-const stocksRouter = require('./routes/stocks');
-const userRouter = require('./routes/user');
 
 const app = express();
 
@@ -43,6 +41,9 @@ logger.token("res", (req, res) => {
 	res.getHeaderNames().map((h) => (headers[h] = res.getHeader(h)))
 	return JSON.stringify(headers)
 });
+
+const stocksRouter = require('./routes/stocks');
+const userRouter = require('./routes/user');
 
 app.use("/", swaggerUI.serve);
 app.get("/", swaggerUI.setup(swaggerDocument));
